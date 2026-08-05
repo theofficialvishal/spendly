@@ -473,26 +473,70 @@ Save to:
 
 ---
 
-# Step 12 — Final Report
+# Step 12 — Enter Plan Mode
+
+Enter Plan Mode (Shift+Tab twice).
+
+Using ONLY the approved specification, create a complete implementation plan.
+
+The plan must include:
+
+- Overall implementation strategy
+- Files to modify (in execution order)
+- Files to create
+- Database changes
+- Backend implementation steps
+- Frontend implementation steps
+- Testing strategy
+- Risks and dependencies
+- Validation checkpoints
+
+Do NOT implement any code.
+
+Do NOT modify the specification.
+
+If the specification is ambiguous, STOP and ask the user for clarification before creating the plan.
+
+---
+
+# Step 13 — Save the Plan
+
+The ONLY valid location for implementation plans is:
+
+.agents/plans/
+
+Save the implementation plan as:
+
+.agents/plans/<step_number>-<feature_slug>.md
+
+Rules:
+
+- Create the .agents/plans directory if it does not already exist.
+- Overwrite the existing plan file if one already exists.
+- Never save the plan anywhere else.
+- Never create temporary plan files.
+- Never save the plan as a conversation artifact.
+- Never choose another filename.
+- If the plan cannot be saved to the required location, STOP and report the error.
+
+---
+
+# Step 14 — Final Report
 
 Print ONLY:
 
-Branch:    <branch_name>
+Branch: <branch_name>
 
 Spec file: .agents/specs/<step_number>-<feature_slug>.md
 
-Title:     <feature_title>
+Plan file: .agents/plans/<step_number>-<feature_slug>.md
+
+Title: <feature_title>
 
 Then tell the user:
 
-Review the specification inside
+Review both the specification and implementation plan.
 
-.agents/specs/<step_number>-<feature_slug>.md
+Do not begin implementation until the user explicitly approves the plan.
 
-Once approved,
-
-enter Plan Mode (Shift+Tab twice)
-
-before beginning implementation.
-
-Do NOT print the entire specification in chat unless explicitly requested.
+After approval, exit Plan Mode and switch to Normal Mode before writing any code.

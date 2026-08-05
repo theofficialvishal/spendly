@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from werkzeug.security import generate_password_hash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
 
 app = Flask(__name__)
@@ -33,9 +33,13 @@ def privacy():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if "user_id" in session:
+        flash("You are already logged in.", "info")
+        return redirect(url_for("landing"))
+
     if request.method == "POST":
         name = request.form.get("name")
-        email = request.form.get("email")
+        email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password")
 
         conn = get_db()
@@ -63,18 +67,47 @@ def register():
     return render_template("register.html")
 
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "POST"])
 def login():
+    if "user_id" in session:
+        flash("You are already logged in.", "info")
+        return redirect(url_for("landing"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+
+        if not email or not password:
+            flash("Please provide both email and password.", "error")
+            return redirect(url_for("login"))
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, name, email, password_hash FROM users WHERE email = ?;",
+            (email,)
+        )
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user["password_hash"], password):
+            session["user_id"] = user["id"]
+            session["user_name"] = user["name"]
+            session["user_email"] = user["email"]
+            flash(f"Welcome back, {user['name']}!", "success")
+            return redirect(url_for("landing"))
+        else:
+            flash("Invalid email or password.", "error")
+            return redirect(url_for("login"))
+
     return render_template("login.html")
 
 
-# ------------------------------------------------------------------ #
-# Placeholder routes — students will implement these                  #
-# ------------------------------------------------------------------ #
-
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
-    return "Logout — coming in Step 3"
+    session.clear()
+    flash("You have been logged out successfully.", "success")
+    return redirect(url_for("landing"))
 
 
 @app.route("/profile")
