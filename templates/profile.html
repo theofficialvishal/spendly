@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+<section class="profile-container">
+    <!-- Top Greeting -->
+    <div class="profile-greeting">
+        <p>Welcome back!</p>
+    </div>
+
+    <!-- User Hero Card -->
+    <div class="profile-hero-card">
+        <div class="avatar-circle">
+            {{ user.initials }}
+        </div>
+        <div class="hero-user-details">
+            <h1 class="hero-user-name">{{ user.name }}</h1>
+            <p class="hero-user-email">{{ user.email }}</p>
+            <p class="hero-user-joined">Member since {{ user.joined_date }}</p>
+        </div>
+    </div>
+
+    <!-- 3 Summary Stat Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">TOTAL SPENT</span>
+            <div class="stat-value">₹{{ "%.2f"|format(stats.total_spent) }}</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">TRANSACTIONS</span>
+            <div class="stat-value">{{ stats.total_transactions }}</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">TOP CATEGORY</span>
+            <div class="stat-value">{{ stats.top_category }}</div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Section: 2 Columns -->
+    <div class="profile-dashboard-grid">
+        <!-- Left Column: Recent Transactions -->
+        <div class="dashboard-card recent-transactions-card">
+            <h2 class="card-title">Recent Transactions</h2>
+            {% if recent_transactions %}
+            <div class="table-responsive">
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>DATE</th>
+                            <th>DESCRIPTION</th>
+                            <th>CATEGORY</th>
+                            <th class="text-right">AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in recent_transactions %}
+                        <tr>
+                            <td class="tx-date">{{ tx.date }}</td>
+                            <td class="tx-desc">{{ tx.description }}</td>
+                            <td>
+                                <span class="category-pill cat-{{ tx.category_slug }}">
+                                    {{ tx.category }}
+                                </span>
+                            </td>
+                            <td class="tx-amount text-right">₹{{ "%.2f"|format(tx.amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-state">No transactions recorded yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: By Category -->
+        <div class="dashboard-card category-breakdown-card">
+            <h2 class="card-title">By Category</h2>
+            {% if category_breakdown %}
+            <div class="category-breakdown-list">
+                {% for item in category_breakdown %}
+                <div class="category-item">
+                    <div class="cat-header">
+                        <span class="cat-name">{{ item.category }}</span>
+                        <span class="cat-amount">₹{{ "%.2f"|format(item.amount) }}</span>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill cat-bar-{{ item.category_slug }}" style="width: {{ item.percentage }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state">No category spending data.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
