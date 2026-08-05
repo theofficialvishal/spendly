@@ -1,132 +1,498 @@
 ---
 name: create-spec
-description: Create a spec file and feature branch for the next Spendly step
-argument-hint: "Step number and feature name e.g. 2 registration"
+description: Create a specification document and feature branch for the next Spendly roadmap feature.
+argument-hint: "Step number and feature name (e.g. 2 registration)"
 allowed-tools: Read, Write, Glob, Bash(git:*)
 ---
 
-You are a senior developer spinning up a new feature for the
-Spendly expense tracker. Always follow the rules in GEMINI.md.
+You are a senior software engineer responsible for preparing the next feature specification for the Spendly expense tracker.
 
-User input: $ARGUMENTS
+Your goal is NOT to write implementation code.
 
-## Step 1 — Check working directory is clean
-Run `git status` and check for uncommitted, unstaged, or
-untracked files. If any exist, stop immediately and tell
-the user to commit or stash changes before proceeding.
-DO NOT CONTINUE until the working directory is clean.
+Your only responsibility is to create a complete implementation specification that another AI or developer can safely implement.
 
-## Step 2 — Parse the arguments
-From $ARGUMENTS extract:
+Always follow every rule defined in GEMINI.md.
 
-1. `step_number` — zero-padded to 2 digits: 2 → 02, 11 → 11
+User input:
 
-2. `feature_title` — human readable title in Title Case
-   - Example: "Registration" or "Login and Logout"
-
-3. `feature_slug` — git and file safe slug
-   - Lowercase, kebab-case
-   - Only a-z, 0-9 and -
-   - Maximum 40 characters
-   - Example: registration, login-logout
-
-4. `branch_name` — format: `feature/<feature_slug>`
-   - Example: `feature/registration`
-
-If you cannot infer these from $ARGUMENTS, ask the user
-to clarify before proceeding.
-
-## Step 3 — Check branch name is not taken
-Run `git branch` to list existing branches.
-If `branch_name` is already taken, append a number:
-`feature/registration-01`, `feature/registration-02` etc.
-
-## Step 4 — Switch to main and pull latest
-Run:
-```
-git checkout main
-git pull origin main
-```
-
-## Step 5 — Create and switch to the feature branch
-Run:
-```
-git checkout -b <branch_name>
-```
-
-## Step 6 — Research the codebase
-Read these files before writing the spec:
-- `GEMINI.md` — roadmap, conventions, schema
-- `app.py` — existing routes and structure
-- `database/db.py` — existing schema and functions
-- All files in `.agents/specs/` — avoid duplicating existing specs
-
-Check `GEMINI.md` to confirm the requested step is not already
-marked complete. If it is, warn the user and stop.
-
-## Step 7 — Write the spec
-Generate a spec document with this exact structure:
+$ARGUMENTS
 
 ---
-# Spec: <feature_title>
+
+# Step 1 — Verify Working Directory
+
+Run:
+
+git status
+
+If there are ANY:
+
+- modified files
+- staged files
+- untracked files
+
+STOP.
+
+Tell the user:
+
+"The working directory is not clean. Please commit or stash your changes before creating a new feature specification."
+
+Do NOT continue.
+
+---
+
+# Step 2 — Parse User Arguments
+
+Extract:
+
+1. step_number
+   - Zero-pad to two digits
+   - Examples:
+     2 → 02
+     8 → 08
+     11 → 11
+
+2. feature_title
+   Human readable Title Case
+
+   Examples:
+
+   Registration
+
+   Login and Logout
+
+3. feature_slug
+
+Lowercase
+
+kebab-case
+
+Maximum 40 characters
+
+Only:
+
+a-z
+
+0-9
+
+-
+
+Example:
+
+login-logout
+
+4. branch_name
+
+feature/<feature_slug>
+
+Example
+
+feature/login
+
+If anything cannot be confidently inferred,
+
+STOP
+
+Ask the user for clarification.
+
+Do NOT guess.
+
+---
+
+# Step 3 — Verify Feature Understanding
+
+Before doing anything else,
+
+summarise your understanding of the requested feature in 3–5 concise bullet points.
+
+If the request is ambiguous,
+
+STOP.
+
+Ask follow-up questions.
+
+Do NOT continue until the request is clear.
+
+---
+
+# Step 4 — Ensure Branch Name is Unique
+
+Run:
+
+git branch
+
+If the branch already exists,
+
+append a numeric suffix.
+
+Examples
+
+feature/login
+
+feature/login-01
+
+feature/login-02
+
+---
+
+# Step 5 — Switch to Main
+
+Run
+
+git checkout main
+
+git pull origin main
+
+If pull fails,
+
+STOP
+
+Report the error.
+
+---
+
+# Step 6 — Create Feature Branch
+
+Run
+
+git checkout -b <branch_name>
+
+---
+
+# Step 7 — Research the Existing Project
+
+Before writing anything,
+
+read the following:
+
+- GEMINI.md
+- app.py
+- database/db.py
+- every spec inside .agents/specs/
+
+Research the existing codebase carefully.
+
+Every recommendation inside the spec MUST be supported by the existing project.
+
+Never invent:
+
+- routes
+
+- tables
+
+- schema
+
+- filenames
+
+- architecture
+
+If information is missing,
+
+explicitly write
+
+"Not enough information."
+
+Do NOT guess.
+
+---
+
+# Step 8 — Check for Duplicate Work
+
+Compare the requested feature against:
+
+- roadmap
+
+- existing specs
+
+If the feature already exists,
+
+STOP.
+
+Explain which specification already covers it.
+
+Do NOT generate another spec.
+
+Also verify inside GEMINI.md that the requested roadmap step has not already been completed.
+
+If already completed,
+
+STOP.
+
+Warn the user.
+
+---
+
+# Step 9 — Generate the Specification
+
+Generate the specification using EXACTLY the following structure.
+
+---
+
+# Spec: <Feature Title>
 
 ## Overview
-One paragraph describing what this feature does and why
-it exists at this stage of the Spendly roadmap.
 
-## Depends on
-Which previous steps this feature requires to be complete.
+One paragraph describing the purpose of the feature and why it exists at this stage of the roadmap.
 
-## Routes
-Every new route needed:
-- `METHOD /path` — description — access level (public/logged-in)
-
-If no new routes: state "No new routes".
-
-## Database changes
-Any new tables, columns, or constraints needed.
-Always verify against `database/db.py` before writing this.
-If none: state "No database changes".
-
-## Templates
-- **Create:** list new templates with their path
-- **Modify:** list existing templates and what changes
-
-## Files to change
-Every file that will be modified.
-
-## Files to create
-Every new file that will be created.
-
-## New dependencies
-Any new pip packages. If none: state "No new dependencies".
-
-## Rules for implementation
-Specific constraints GEMINI must follow. Always include:
-- No SQLAlchemy or ORMs
-- Parameterised queries only
-- Passwords hashed with werkzeug
-- Use CSS variables — never hardcode hex values
-- All templates extend `base.html`
-
-## Definition of done
-A specific testable checklist. Each item must be
-something that can be verified by running the app.
 ---
 
-## Step 8 — Save the spec
-Save to: `.agents/specs/<step_number>-<feature_slug>.md`
+## Feature Summary
 
-## Step 9 — Report to the user
-Print a short summary in this exact format:
-```
+3–5 bullet points describing the expected behaviour.
+
+---
+
+## Depends On
+
+Previous roadmap steps required.
+
+If none,
+
+state:
+
+None.
+
+---
+
+## Non Goals
+
+Explicitly state what this feature will NOT implement.
+
+---
+
+## Acceptance Criteria
+
+A measurable checklist describing what the finished feature must achieve.
+
+---
+
+## Routes
+
+Use this table.
+
+| Method | Route | Access | Purpose |
+
+If no new routes:
+
+Write:
+
+No new routes.
+
+---
+
+## Database Changes
+
+Split into:
+
+### Existing Tables Affected
+
+### New Tables
+
+### Indexes
+
+### Constraints
+
+### Migration Notes
+
+If nothing changes,
+
+state:
+
+No database changes.
+
+---
+
+## UI Changes
+
+Include:
+
+Navigation
+
+Forms
+
+Buttons
+
+Validation
+
+Flash Messages
+
+Responsive Behaviour
+
+If none,
+
+state:
+
+No UI changes.
+
+---
+
+## Templates
+
+### Create
+
+### Modify
+
+Describe exactly what changes are needed.
+
+---
+
+## Files to Modify
+
+List every existing file.
+
+---
+
+## Files to Create
+
+List every new file.
+
+---
+
+## New Dependencies
+
+List new pip packages.
+
+Otherwise
+
+No new dependencies.
+
+---
+
+## Risks
+
+Potential implementation risks.
+
+Examples
+
+Database migration
+
+Authentication
+
+Performance
+
+Compatibility
+
+---
+
+## Security Considerations
+
+Always include:
+
+Authentication
+
+Authorization
+
+Input Validation
+
+CSRF
+
+XSS Prevention
+
+Parameterized SQL
+
+Password Hashing
+
+---
+
+## Manual Test Plan
+
+Describe manual testing scenarios including:
+
+Happy Path
+
+Validation Errors
+
+Edge Cases
+
+Authentication
+
+Regression Checks
+
+---
+
+## Rules for Implementation
+
+Always include:
+
+- No SQLAlchemy or ORMs
+- Parameterized SQL queries only
+- Passwords hashed using werkzeug.security
+- Reuse existing helper functions whenever possible
+- Never duplicate existing logic
+- Keep routes thin
+- Move business logic into reusable functions
+- Use CSS variables
+- Never hardcode colours
+- Every template extends base.html
+- Follow existing project structure
+- Avoid unnecessary dependencies
+- Preserve backward compatibility
+- Do not break existing functionality
+
+---
+
+## Definition of Done
+
+A checklist where every item can be verified by running the application.
+
+---
+
+# Step 10 — Validate the Spec
+
+Before saving,
+
+verify:
+
+✓ Every referenced file exists
+
+✓ Route names are consistent
+
+✓ No duplicated routes
+
+✓ No duplicated templates
+
+✓ Database changes match database/db.py
+
+✓ Feature follows roadmap
+
+✓ Spec does not contradict GEMINI.md
+
+✓ No assumptions were made without evidence
+
+If validation fails,
+
+fix the specification before saving.
+
+---
+
+# Step 11 — Save the Spec
+
+Save to:
+
+.agents/specs/<step_number>-<feature_slug>.md
+
+---
+
+# Step 12 — Final Report
+
+Print ONLY:
+
 Branch:    <branch_name>
+
 Spec file: .agents/specs/<step_number>-<feature_slug>.md
+
 Title:     <feature_title>
-```
 
 Then tell the user:
-"Review the spec at `.agents/specs/<step_number>-<feature_slug>.md`
-then enter Plan Mode with Shift+Tab twice to begin implementation."
 
-Do not print the full spec in chat unless explicitly asked.
+Review the specification inside
+
+.agents/specs/<step_number>-<feature_slug>.md
+
+Once approved,
+
+enter Plan Mode (Shift+Tab twice)
+
+before beginning implementation.
+
+Do NOT print the entire specification in chat unless explicitly requested.
