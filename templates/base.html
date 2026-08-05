@@ -21,6 +21,7 @@
             <div class="nav-links">
                 {% if session.get('user_id') %}
                     <span class="nav-user">Hi, {{ session.get('user_name') }}</span>
+                    <a href="{{ url_for('profile') }}" class="nav-link">Profile</a>
                     <a href="{{ url_for('logout') }}" class="nav-link">Sign out</a>
                 {% else %}
                     <a href="{{ url_for('login') }}">Sign in</a>
@@ -55,6 +56,7 @@
         </div>
     </footer>
 
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
