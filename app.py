@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import get_db, init_db, seed_db
@@ -18,7 +18,7 @@ def format_date_display(date_str):
     try:
         dt = datetime.strptime(date_str[:10], "%Y-%m-%d")
         return dt.strftime("%d %b %Y")
-    except Exception:
+    except (ValueError, TypeError):
         return date_str[:10]
 
 
@@ -29,6 +29,83 @@ def get_avatar_initials(name):
     if len(parts) == 1:
         return parts[0][:2].upper()
     return (parts[0][0] + parts[-1][0]).upper()
+
+
+def validate_iso_date(date_str):
+    """Validates that a string is in YYYY-MM-DD format. Returns normalized string or empty string."""
+    if not date_str:
+        return ""
+    try:
+        dt = datetime.strptime(date_str[:10], "%Y-%m-%d")
+        return dt.strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        return ""
+
+
+def resolve_profile_date_filter(args):
+    """
+    Extracts and validates date filter parameters (preset, start_date, end_date).
+    Returns (start_date, end_date, active_preset, flash_error_message).
+    """
+    preset = (args.get("preset") or "").strip().lower()
+    start_date_str = (args.get("start_date") or "").strip()
+    end_date_str = (args.get("end_date") or "").strip()
+
+    start_date = ""
+    end_date = ""
+    error_msg = None
+
+    if preset in ("all", "all_time"):
+        start_date = ""
+        end_date = ""
+    elif preset == "this_month":
+        today = date.today()
+        start_date = today.replace(day=1).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    elif preset == "last_3_months":
+        today = date.today()
+        start_date = (today - timedelta(days=90)).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    elif preset == "last_6_months":
+        today = date.today()
+        start_date = (today - timedelta(days=180)).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    else:
+        start_date = validate_iso_date(start_date_str)
+        end_date = validate_iso_date(end_date_str)
+        if (start_date_str and not start_date) or (end_date_str and not end_date):
+            error_msg = "Invalid date format provided."
+
+    if start_date and end_date and start_date > end_date:
+        error_msg = "Start date cannot be after end date."
+        start_date = ""
+        end_date = ""
+        preset = ""
+
+    active_preset = preset if preset in ("this_month", "last_3_months", "last_6_months") else ""
+    if not start_date and not end_date:
+        active_preset = "all_time"
+
+    return start_date, end_date, active_preset, error_msg
+
+
+def build_date_where_clause(user_id, start_date, end_date):
+    """Builds a SQL WHERE clause and parameters list for expense date filtering."""
+    date_conditions = []
+    query_params = [user_id]
+
+    if start_date:
+        date_conditions.append("date >= ?")
+        query_params.append(start_date)
+    if end_date:
+        date_conditions.append("date <= ?")
+        query_params.append(end_date)
+
+    where_clause = "WHERE user_id = ?"
+    if date_conditions:
+        where_clause += " AND " + " AND ".join(date_conditions)
+
+    return where_clause, tuple(query_params)
 
 
 # ------------------------------------------------------------------ #
@@ -138,97 +215,100 @@ def profile():
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+    start_date, end_date, active_preset, error_msg = resolve_profile_date_filter(request.args)
+    if error_msg:
+        flash(error_msg, "error")
+
+    where_clause, query_params = build_date_where_clause(user_id, start_date, end_date)
+
     conn = get_db()
     cursor = conn.cursor()
+    try:
+        # 1. Fetch User Identity
+        cursor.execute("SELECT name, email, created_at FROM users WHERE id = ?;", (user_id,))
+        user_row = cursor.fetchone()
+        if not user_row:
+            session.clear()
+            flash("User not found. Please log in again.", "error")
+            return redirect(url_for("login"))
 
-    # 1. Fetch User Identity
-    cursor.execute(
-        "SELECT name, email, created_at FROM users WHERE id = ?;",
-        (user_id,)
-    )
-    user_row = cursor.fetchone()
-    if not user_row:
+        user_info = {
+            "name": user_row["name"],
+            "email": user_row["email"],
+            "created_at": user_row["created_at"],
+            "initials": get_avatar_initials(user_row["name"]),
+            "joined_date": format_date_display(user_row["created_at"])
+        }
+
+        # 2. Fetch Aggregated Metrics (Total Spent, Total Transactions)
+        cursor.execute(
+            f"SELECT COALESCE(SUM(amount), 0) AS total_spent, COUNT(*) AS total_tx FROM expenses {where_clause};",
+            query_params
+        )
+        metrics_row = cursor.fetchone()
+        total_spent = float(metrics_row["total_spent"]) if metrics_row else 0.0
+        total_transactions = metrics_row["total_tx"] if metrics_row else 0
+
+        # 3. Fetch Recent Transactions
+        cursor.execute(
+            f"SELECT id, amount, category, date, description FROM expenses {where_clause} ORDER BY date DESC, id DESC LIMIT 5;",
+            query_params
+        )
+        tx_rows = cursor.fetchall()
+        recent_transactions = [
+            {
+                "id": row["id"],
+                "amount": float(row["amount"]),
+                "category": row["category"],
+                "category_slug": row["category"].lower(),
+                "date": format_date_display(row["date"]),
+                "description": row["description"] or ""
+            }
+            for row in tx_rows
+        ]
+
+        # 4. Fetch Category Breakdown
+        cursor.execute(
+            f"SELECT category, SUM(amount) AS cat_sum FROM expenses {where_clause} GROUP BY category ORDER BY cat_sum DESC;",
+            query_params
+        )
+        cat_rows = cursor.fetchall()
+        category_breakdown = []
+        max_cat_total = float(cat_rows[0]["cat_sum"]) if cat_rows else 1.0
+        if max_cat_total <= 0:
+            max_cat_total = 1.0
+
+        for row in cat_rows:
+            cat_sum = float(row["cat_sum"])
+            pct = min(100, max(5, round((cat_sum / max_cat_total) * 100)))
+            category_breakdown.append({
+                "category": row["category"],
+                "category_slug": row["category"].lower(),
+                "amount": cat_sum,
+                "percentage": pct
+            })
+
+        # Top category derived directly from breakdown (eliminates redundant query)
+        top_category = category_breakdown[0]["category"] if category_breakdown else "N/A"
+
+        stats = {
+            "total_spent": total_spent,
+            "total_transactions": total_transactions,
+            "top_category": top_category
+        }
+
+    finally:
         conn.close()
-        session.clear()
-        flash("User not found. Please log in again.", "error")
-        return redirect(url_for("login"))
-
-    user_info = {
-        "name": user_row["name"],
-        "email": user_row["email"],
-        "created_at": user_row["created_at"],
-        "initials": get_avatar_initials(user_row["name"]),
-        "joined_date": format_date_display(user_row["created_at"])
-    }
-
-    # 2. Fetch Aggregated Metrics
-    cursor.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS total_spent, COUNT(*) AS total_tx FROM expenses WHERE user_id = ?;",
-        (user_id,)
-    )
-    metrics_row = cursor.fetchone()
-    total_spent = float(metrics_row["total_spent"]) if metrics_row else 0.0
-    total_transactions = metrics_row["total_tx"] if metrics_row else 0
-
-    cursor.execute(
-        "SELECT category, SUM(amount) AS cat_sum FROM expenses WHERE user_id = ? GROUP BY category ORDER BY cat_sum DESC LIMIT 1;",
-        (user_id,)
-    )
-    top_cat_row = cursor.fetchone()
-    top_category = top_cat_row["category"] if top_cat_row else "N/A"
-
-    stats = {
-        "total_spent": total_spent,
-        "total_transactions": total_transactions,
-        "top_category": top_category
-    }
-
-    # 3. Fetch Recent Transactions
-    cursor.execute(
-        "SELECT id, amount, category, date, description FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC LIMIT 5;",
-        (user_id,)
-    )
-    tx_rows = cursor.fetchall()
-    recent_transactions = []
-    for row in tx_rows:
-        recent_transactions.append({
-            "id": row["id"],
-            "amount": float(row["amount"]),
-            "category": row["category"],
-            "category_slug": row["category"].lower(),
-            "date": format_date_display(row["date"]),
-            "description": row["description"] or ""
-        })
-
-    # 4. Fetch Category Breakdown
-    cursor.execute(
-        "SELECT category, SUM(amount) AS cat_sum FROM expenses WHERE user_id = ? GROUP BY category ORDER BY cat_sum DESC;",
-        (user_id,)
-    )
-    cat_rows = cursor.fetchall()
-    category_breakdown = []
-    max_cat_total = float(cat_rows[0]["cat_sum"]) if cat_rows else 1.0
-    if max_cat_total <= 0:
-        max_cat_total = 1.0
-
-    for row in cat_rows:
-        cat_sum = float(row["cat_sum"])
-        pct = min(100, max(5, round((cat_sum / max_cat_total) * 100)))
-        category_breakdown.append({
-            "category": row["category"],
-            "category_slug": row["category"].lower(),
-            "amount": cat_sum,
-            "percentage": pct
-        })
-
-    conn.close()
 
     return render_template(
         "profile.html",
         user=user_info,
         stats=stats,
         recent_transactions=recent_transactions,
-        category_breakdown=category_breakdown
+        category_breakdown=category_breakdown,
+        start_date=start_date,
+        end_date=end_date,
+        active_preset=active_preset
     )
 
 
