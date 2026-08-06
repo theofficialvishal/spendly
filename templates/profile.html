@@ -21,6 +21,36 @@
         </div>
     </div>
 
+    <!-- Date Filter Card -->
+    <div class="filter-card">
+        <div class="filter-presets">
+            <span class="preset-label">Quick Filters:</span>
+            <div class="preset-buttons">
+                <a href="{{ url_for('profile', preset='all_time') }}" role="button" aria-pressed="{{ 'true' if active_preset == 'all_time' else 'false' }}" class="btn-preset {% if active_preset == 'all_time' %}active{% endif %}">All Time</a>
+                <a href="{{ url_for('profile', preset='this_month') }}" role="button" aria-pressed="{{ 'true' if active_preset == 'this_month' else 'false' }}" class="btn-preset {% if active_preset == 'this_month' %}active{% endif %}">This Month</a>
+                <a href="{{ url_for('profile', preset='last_3_months') }}" role="button" aria-pressed="{{ 'true' if active_preset == 'last_3_months' else 'false' }}" class="btn-preset {% if active_preset == 'last_3_months' %}active{% endif %}">Last 3 Months</a>
+                <a href="{{ url_for('profile', preset='last_6_months') }}" role="button" aria-pressed="{{ 'true' if active_preset == 'last_6_months' else 'false' }}" class="btn-preset {% if active_preset == 'last_6_months' %}active{% endif %}">Last 6 Months</a>
+            </div>
+        </div>
+
+        <form method="GET" action="{{ url_for('profile') }}" class="date-filter-form">
+            <div class="filter-group">
+                <label for="start_date" class="filter-label">From</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="filter-input">
+            </div>
+            <div class="filter-group">
+                <label for="end_date" class="filter-label">To</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="filter-input">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn-filter">Filter</button>
+                {% if start_date or end_date %}
+                <a href="{{ url_for('profile') }}" class="btn-clear">Clear Filter</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
     <!-- 3 Summary Stat Cards -->
     <div class="stats-grid">
         <div class="stat-card">
