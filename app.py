@@ -37,6 +37,8 @@ def get_avatar_initials(name):
 
 @app.route("/")
 def landing():
+    if "user_id" in session:
+        return redirect(url_for("profile"))
     return render_template("landing.html")
 
 
@@ -54,7 +56,7 @@ def privacy():
 def register():
     if "user_id" in session:
         flash("You are already logged in.", "info")
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "POST":
         name = request.form.get("name")
@@ -90,7 +92,7 @@ def register():
 def login():
     if "user_id" in session:
         flash("You are already logged in.", "info")
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
@@ -114,7 +116,7 @@ def login():
             session["user_name"] = user["name"]
             session["user_email"] = user["email"]
             flash(f"Welcome back, {user['name']}!", "success")
-            return redirect(url_for("landing"))
+            return redirect(url_for("profile"))
         else:
             flash("Invalid email or password.", "error")
             return redirect(url_for("login"))
