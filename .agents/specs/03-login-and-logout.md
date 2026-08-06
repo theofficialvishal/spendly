@@ -10,7 +10,7 @@ This feature implements user authentication (login) and session termination (log
 
 - Render the login form on `GET /login` and process authentication on `POST /login`.
 - Query user records via parameterized SQL and verify password credentials securely using `werkzeug.security.check_password_hash`.
-- Store authenticated user information (`user_id`, `user_name`, `user_email`) in Flask `session` upon successful authentication and redirect to the landing page with a success flash message.
+- Store authenticated user information (`user_id`, `user_name`, `user_email`) in Flask `session` upon successful authentication and redirect to the profile page (`/profile`) with a success flash message.
 - Implement `/logout` route to clear all Flask session keys (`session.clear()`) and redirect to the landing page with an informational flash message.
 - Dynamically update navigation UI in `templates/base.html` to reflect whether a user is logged in or logged out.
 
@@ -36,11 +36,11 @@ This feature implements user authentication (login) and session termination (log
 ## Acceptance Criteria
 
 - [ ] Navigating to `GET /login` renders the login form page.
-- [ ] Submitting `POST /login` with valid registered email and correct password verifies `check_password_hash`, sets `session['user_id']`, `session['user_name']`, and `session['user_email']`, and redirects to `url_for('landing')` with a success flash message.
+- [ ] Submitting `POST /login` with valid registered email and correct password verifies `check_password_hash`, sets `session['user_id']`, `session['user_name']`, and `session['user_email']`, and redirects to `url_for('profile')` with a success flash message.
 - [ ] Submitting `POST /login` with non-existent email or wrong password displays a generic error flash message ("Invalid email or password.") on the login page.
 - [ ] Accessing `/logout` clears `session`, displays flash message ("You have been logged out successfully."), and redirects to `url_for('landing')`.
 - [ ] `templates/base.html` header navigation conditionally renders "Sign out" link and user greeting when logged in, or "Sign in" and "Get started" CTA links when logged out.
-- [ ] Logged-in users navigating to `/login` or `/register` are automatically redirected to `url_for('landing')` with an informational flash message.
+- [ ] Logged-in users navigating to `/`, `/login`, or `/register` are automatically redirected to `url_for('profile')`.
 
 ---
 
@@ -147,7 +147,7 @@ No new dependencies.
 - **Happy Path**:
   1. Open app at `http://127.0.0.1:5001/login`.
   2. Enter credentials for demo user (`demo@spendly.com` / `demo123`).
-  3. Click "Sign in" and verify redirect to `/` with success message "Welcome back, Demo User!".
+  3. Click "Sign in" and verify redirect to `/profile` with success message "Welcome back, Demo User!".
   4. Verify top navbar displays "Demo User" and "Sign out".
   5. Click "Sign out" and verify redirect to `/` with message "You have been logged out successfully.".
   6. Verify top navbar displays "Sign in" and "Get started".
@@ -159,7 +159,7 @@ No new dependencies.
 
 - **Edge Cases**:
   1. Enter email with surrounding whitespace or uppercase letters (` DEMO@SPENDLY.COM `) — login succeeds.
-  2. Directly visit `/login` while logged in — automatically redirected to `/` with message "You are already logged in.".
+  2. Directly visit `/`, `/login`, or `/register` while logged in — automatically redirected to `/profile`.
   3. Directly visit `/logout` when logged out — safely redirects to `/` or `/login` without application errors.
 
 - **Authentication**:
@@ -192,11 +192,11 @@ No new dependencies.
 ## Definition of Done
 
 - [ ] Navigating to `GET /login` displays the login form template.
-- [ ] Submitting `POST /login` with valid credentials authenticates user, sets `session` keys, and redirects to landing page with success flash message.
+- [ ] Submitting `POST /login` with valid credentials authenticates user, sets `session` keys, and redirects to profile page (`/profile`) with success flash message.
 - [ ] Submitting `POST /login` with invalid credentials displays generic error message without logging user in.
 - [ ] Accessing `/logout` purges all `session` data and redirects to landing page with flash message.
 - [ ] `templates/base.html` navbar updates dynamically based on session status.
-- [ ] Logged-in users attempting to visit `/login` or `/register` are redirected to landing page.
+- [ ] Logged-in users attempting to visit `/`, `/login`, or `/register` are redirected to profile page (`/profile`).
 - [ ] Database query for user authentication uses parameterized SQL (`?`).
 - [ ] Password verification uses `werkzeug.security.check_password_hash`.
 - [ ] All manual test plan scenarios pass without errors.

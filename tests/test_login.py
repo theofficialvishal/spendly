@@ -139,3 +139,26 @@ def test_already_logged_in_redirect_from_register(client):
     response = client.get("/register", follow_redirects=True)
     assert response.status_code == 200
     assert b"You are already logged in." in response.data
+
+
+def test_login_redirect_location(client):
+    response = client.post(
+        "/login",
+        data={"email": "demo@spendly.com", "password": "demo123"},
+        follow_redirects=False
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/profile"
+
+
+def test_landing_redirect_when_logged_in(client):
+    client.post(
+        "/login",
+        data={"email": "demo@spendly.com", "password": "demo123"},
+        follow_redirects=True
+    )
+
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/profile"
+
